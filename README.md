@@ -1,7 +1,7 @@
 # enusampler
 ### 概要
 * SimpleEnunuをUTAUのエンジンとして実行します
-SimpleEnunu（）
+SimpleEnunu（https://github.com/oatsu-gh/SimpleEnunu）
 
 ***
 
