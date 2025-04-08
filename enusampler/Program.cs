@@ -203,10 +203,11 @@ class Program
             Console.WriteLine("TunedWavOutはture,falseで設定してください。");
             Environment.Exit(1);
         }
+
         if(TunedWavOut == false)
         {
             //TODO:pyファイルはリストを用意してその中に一致するものがあれば選択するようにする
-            pyfilePath = Path.Combine(pyfilePath,"simple_enunu040.py");
+            pyfilePath = Path.Combine(pyfilePath,"simple_enunu.py");
         }
         else
         {
