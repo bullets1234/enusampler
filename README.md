@@ -1,7 +1,7 @@
 # enusampler
 ### 概要
-* SimpleEnunuをUTAUのエンジンとして実行します
-SimpleEnunu（https://github.com/oatsu-gh/SimpleEnunu）
+* SimpleEnunuをUTAUのエンジンとして実行します<br>
+SimpleEnunu（ https://github.com/oatsu-gh/SimpleEnunu ）
 
 ***
 
@@ -32,6 +32,14 @@ Step2
 (理由はtemp$$$.ustを利用することに起因します。)
 
 - 初回合成前には`必ず`ustの編集を行ってください（内容は何でも構いません）
+
+Step3 ※オプションですが推奨事項です
+- simple_enunu040.py,simple_enunu_TunedWavOut.pyのどちらを利用する場合でも、合成後にUTAU上、ENUNU上でも再生が始まります。
+- 音声がかぶってしまうので、ENUNU側の再生機能をオフにします。
+- 下記の通りに`Play_Wav=False`を指定します。
+simple_enunu040.py
+![image](https://github.com/user-attachments/assets/c2522515-3280-4850-9826-b40ee5aab78e)
+
 
 
 
