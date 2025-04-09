@@ -183,7 +183,15 @@ class Program
 
         if (string.IsNullOrEmpty(configuration["Environment:Python"]) || configuration["Environment:Python"] =="")
         {
-            pythonEnvPath = Path.Combine(configuration["Environment:ENUNU:Path"], @"python-3.9.13-embed-amd64\python.exe");
+            var pythonDir = Directory.GetDirectories(configuration["Environment:ENUNU:Path"], "*embed-amd64", SearchOption.TopDirectoryOnly);
+            if (pythonDir.Length == 0)
+            {
+                Console.WriteLine("Error: python env dir not found");
+                //Console.WriteLine("TunedWavOutはture,falseで設定してください。");
+                Environment.Exit(1);
+            }
+
+            pythonEnvPath = Path.Combine(pythonDir[0], @"python.exe");
             if (!File.Exists(pythonEnvPath))
             {
                 Console.WriteLine("Error: python.exe not found");
@@ -203,14 +211,25 @@ class Program
             Console.WriteLine("TunedWavOutはture,falseで設定してください。");
             Environment.Exit(1);
         }
-        if(TunedWavOut == false)
+
+        if(!TunedWavOut)
         {
             //TODO:pyファイルはリストを用意してその中に一致するものがあれば選択するようにする
-            pyfilePath = Path.Combine(pyfilePath,"simple_enunu040.py");
+            pyfilePath = Path.Combine(pyfilePath,"simple_enunu.py");
         }
         else
         {
-            pyfilePath = Path.Combine(pyfilePath, "simple_enunu040_TunedWavOut.py");
+
+            var tunedwavout = Directory.GetFiles(pyfilePath, "*TunedWavOut.py", SearchOption.TopDirectoryOnly);
+            if(tunedwavout.Length == 0)
+            {
+                Console.WriteLine("Error: tuned wav out file not found");
+                //Console.WriteLine("TunedWavOutはture,falseで設定してください。");
+                Environment.Exit(1);
+            }
+            Console.WriteLine(tunedwavout[0]);
+            pyfilePath = Path.Combine(pyfilePath, tunedwavout[0]);
+
         }
 
 
@@ -223,7 +242,14 @@ class Program
 
         var pyprocess = new PyProcessStart(pythonEnvPath, pyfilePath);
         var ustpath = CreateUst(file.Cachedir, ustForRender, file.Oto);
-        await pyprocess.EnunuStart(ustpath, tempWavPath);
+        var isBoolean = Boolean.TryParse(configuration["Environment:ENUNU:Legacy"], out bool legacy);
+        if(!isBoolean)
+        {
+            Console.WriteLine("Error:appsettings.json");
+            Console.WriteLine("Legacyはture,falseで設定してください。");
+            Environment.Exit(1);
+        }
+        await pyprocess.EnunuStart(ustpath, tempWavPath, legacy);
         ModBatchFile(batchFilePath);
 
         pyprocess.EnunuClose();

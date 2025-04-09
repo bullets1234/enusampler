@@ -27,7 +27,7 @@ namespace ENUNU_Engine
             throw new NotImplementedException();
         }
 
-        public async Task<bool> EnunuStart(string ustpath, string tempWavPath) {
+        public async Task<bool> EnunuStart(string ustpath, string tempWavPath,bool islegacy) {
             await Task.Run(() => {
                 //var current = Directory.GetParent(Assembly.GetExecutingAssembly().Location).ToString();
 
@@ -52,7 +52,15 @@ namespace ENUNU_Engine
                 //    play_wav: bool = True,
                 //    lf0: Any | None = None
                 //)->str
-                p.StartInfo.Arguments = $@"{srcPath} {ustpath} {tempWavPath}";// {_path} {_path.Replace(".ust", ".wav")}
+                if (islegacy)
+                {
+                    p.StartInfo.Arguments = $@"{srcPath} {ustpath} {tempWavPath}";
+                }
+                else
+                {
+                    //p.StartInfo.Arguments = $@"{srcPath} {ustpath} {tempWavPath}";
+                    p.StartInfo.Arguments = $@"{srcPath} --wav {tempWavPath} {ustpath} ";
+                }
                 p.Start();
                 p.WaitForExit();
             });
