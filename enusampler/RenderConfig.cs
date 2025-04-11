@@ -24,4 +24,20 @@ namespace ENUNU_Engine
         public List<ResamplerParams> ResamplerParamList { get; set; } = default!;
 
     }
+
+    public interface IRenderConfig
+    {
+        string Loadmodule { get; set; }
+        string Tempo { get; set; }
+        string Samples { get; set; }
+        string Oto { get; set; }
+        string Tool { get; set; }
+        string Resamp { get; set; }
+        string Output { get; set; }
+        string Helper { get; set; }
+        string Cachedir { get; set; }
+        string Flag { get; set; }
+        string Env { get; set; }
+        string Stp { get; set; }
+    }
 }
