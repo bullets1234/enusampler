@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ENUNU_Engine
 {
-    public class ResamplerParams(string _params, string _flag, string _env, string _stp, string _vel, string _temp, string _helper)
+    public class ResamplerParams(string _params, string _flag, string _env, string _stp, string _vel, string _temp, string _helper):IResamplerParams
     {
         //@set params=100 0 !160 /g/q/0//AJAUAeAnAwA3A9BCBFBGBGBEBAA7A1AtAkAbAQAG/7/x/n/d/V/O/I/D/B+//A/C/G/L/S/a/j/t/3ABAKARAXAcAeAgAgAfAcAZAVARANAIAFACAA#6#
         //@set env = 77.4 5 35 100 100 100 0 77.44174
@@ -40,5 +40,16 @@ namespace ENUNU_Engine
             }
         }
 
+    }
+
+    public interface IResamplerParams
+    {
+        string Params { get; set; }
+        string Flag { get; set; }
+        string Env { get; set; }
+        string Stp { get; set; }
+        string Vel { get; set; }
+        string Temp { get; set; }
+        string Helper { get; set; }
     }
 }

@@ -250,7 +250,7 @@ class Program
             Environment.Exit(1);
         }
         await pyprocess.EnunuStart(ustpath, tempWavPath, legacy);
-        ModBatchFile(batchFilePath);
+        ModBatchFile(batchFilePath,file);
 
         pyprocess.EnunuClose();
         Environment.Exit(0);
@@ -294,7 +294,7 @@ class Program
         return Path.Combine(cacheDir, $"enu_temp.ust");
     }
 
-    static void ModBatchFile(string _batFilePath)
+    static void ModBatchFile(string _batFilePath,RenderConfig renderConfig)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         string[] lines = File.ReadAllLines(_batFilePath, Encoding.GetEncoding("Shift_JIS"));
@@ -312,15 +312,25 @@ class Program
             if (line.StartsWith("copy"))
             {
                 lines[i] = "copy /Y ./enu_temp.wav ./temp.wav";
+                if(line.Contains("%output%"))
+                {
+                    lines[i] = $"copy /Y \"./temp.wav\" \"{renderConfig.Output}\"";
+                }
+
+                continue;
             }
 
             lines[i] = "";
         }
 
         var sb = new StringBuilder();
-        sb.Append(lines);
+        foreach (var line in lines)
+        {
+            sb.AppendLine(line);
+        }
+        //sb.Append(lines[0..].ToString());
         StreamWriter sw = new(_batFilePath, false, encoding: Encoding.GetEncoding("shift-jis"));
-        sw.Write(sb.ToString());
+        sw.Write(sb);
         sw.Close();
     }
 
