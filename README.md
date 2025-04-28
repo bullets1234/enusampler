@@ -33,8 +33,8 @@ Step2
 
 - 初回合成前には`必ず`ustの編集を行ってください（内容は何でも構いません）
 
-Step3 ※オプションですが推奨事項です
-- simple_enunu040.py,simple_enunu_TunedWavOut.pyのどちらを利用する場合でも、合成後にUTAU上、ENUNU上でも再生が始まります。
+Step3 ※オプション（simpleEnunu0.4.0以前のバージョンでは対応必須）
+- simple_enunu040.py,simple_enunu_TunedWavOut.pyのどちらを利用する場合でも、合成後にUTAU上・ENUNU上の両方で再生が始まります。
 - 音声がかぶってしまうので、ENUNU側の再生機能をオフにします。
 - 下記の通りに`Play_Wav=False`を指定します。
 <br>simple_enunu040.py
