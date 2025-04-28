@@ -25,6 +25,8 @@ class Program
     private static readonly string wavName = "temp.wav";
     private static bool TunedWavOut = false;
     private static string pythonEnvPath = string.Empty;
+    private static bool ignoreEndPhoneme = true;
+    private static readonly string[] ignoreEndPhonemeList = { "a R", "i R", "u R", "e R", "o R"};
     private static readonly IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json")).Build();
 
     static async Task Main(string[] args)
@@ -68,14 +70,20 @@ class Program
             Console.WriteLine("Batch file not found.");
             Environment.Exit(1);
         }
+        var file = LoadBatFile(batchFilePath);
 
         //バッチファイルが存在しているか確認
         if (!File.Exists(ustFilePath))
         {
             Console.WriteLine("temp ust file not found.");
-            Environment.Exit(1);
+            ustFilePath = file.Cachedir.Replace(".cache",".ust");
+            if (!File.Exists(ustFilePath))
+            {
+                Console.WriteLine("ust file not found.");
+                Environment.Exit(1);
+            }
+            //Environment.Exit(1);
         }
-        var file = LoadBatFile(batchFilePath);
         var ust = SeparateUst(ustFilePath);
 #endif
         //%1 %temp% %2 %vel% %flag% %5 %6 %7 %8 %params%
@@ -249,6 +257,7 @@ class Program
             Console.WriteLine("Legacyはture,falseで設定してください。");
             Environment.Exit(1);
         }
+        Console.WriteLine("EnunuStart");
         await pyprocess.EnunuStart(ustpath, tempWavPath, legacy);
         ModBatchFile(batchFilePath,file);
 
@@ -276,20 +285,46 @@ class Program
                     continue;
                 }
 
-                if (param.Key.StartsWith("VoiceDir") && param.Value.Split("\\").Last() != Oto.Split("\\").Last())
+                if (param.Key.StartsWith("VoiceDir"))
                 {
                     sb.AppendLine(param.Key + "=" + Oto);
                     continue;
                 }
+
+                //if (param.Key.StartsWith("VoiceDir") && param.Value.Split("\\").Last() != Oto.Split("\\").Last())
+                //{
+                //    sb.AppendLine(param.Key + "=" + Oto);
+                //    continue;
+                //}
+
+                //if (param.Key.StartsWith("VoiceDir") && param.Value.Contains("%DATA%"))
+                //{
+                //    var utauDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "UTAU");
+                //    var voiceDir = param.Value.Replace("%DATA%", utauDir);
+                //    sb.AppendLine(param.Key + "=" + voiceDir);
+                //    continue;
+                //}
+
+                if (param.Key.StartsWith("Lyric") && ignoreEndPhoneme)
+                {
+                    if (ignoreEndPhonemeList.Any(pattern => param.Value.StartsWith(pattern)))
+                    {
+                        sb.AppendLine(param.Key + "=" + "R");
+                        continue;
+                    }
+                }
+
                 sb.AppendLine(param.Key + "=" + param.Value);
             }
 
-            EncodingProvider ep = CodePagesEncodingProvider.Instance;
-            StreamWriter sw = new(Path.Combine(cacheDir, $"enu_temp.ust"), false, encoding: Encoding.GetEncoding("shift-jis"));
-            sw.Write(sb.ToString());
-            sw.Close();
+
 
         }
+
+        EncodingProvider ep = CodePagesEncodingProvider.Instance;
+        StreamWriter sw = new(Path.Combine(cacheDir, $"enu_temp.ust"), false, encoding: Encoding.GetEncoding("shift-jis"));
+        sw.Write(sb.ToString());
+        sw.Close();
 
         return Path.Combine(cacheDir, $"enu_temp.ust");
     }
