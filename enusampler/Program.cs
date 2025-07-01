@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using NAudio;
 using NAudio.Wave;
 using Microsoft.Extensions.Configuration;
+using enusampler;
+using System.Text.RegularExpressions;
 
 
 
@@ -247,6 +249,79 @@ class Program
             Environment.Exit(1);
         }
 
+        PitchBendStrDecoder decoder = new PitchBendStrDecoder();
+        //var pitchbend = decoder.Decode(file.ResamplerParamList[1].Params.Split(" ").Last().ToString());
+        foreach (var item in file.ResamplerParamList)
+        {
+            var pitchbend = decoder.Decode(item.Params.Split(" ").Last().ToString());
+            foreach (var pitch in pitchbend)
+            {
+                //Console.WriteLine(pitch);
+            }
+            //foreach (var pitch in pitchbend)
+            //{
+
+            //    //Console.WriteLine(pitch);
+
+
+
+            //    //foreach(var range in pitchRange)
+            //    //{
+            //    //    Console.WriteLine($"range:{range}");
+            //    //}
+            //    //Console.WriteLine(pitchRange);
+            //}
+
+            //try
+            //{
+            var helperArray = item.Helper.Split(" ");
+            //Console.WriteLine($"helperArray:{item.Helper}");
+            if (helperArray.Length < 6)
+            {
+                continue;
+            }
+            var pitchRange = decoder.getPitchRange(file.Tempo, (float)(Convert.ToDecimal(helperArray[5])), 44100);
+            foreach (var range in pitchRange)
+            {
+                //Console.WriteLine($"range:{range}");
+            }
+            //Console.WriteLine($"pitchRange:{pitchRange}");
+            var notetime = decoder.GetNoteTime((float)Convert.ToDecimal(file.Tempo), Convert.ToInt32(helperArray[2].Split("@").First()));
+            //Console.WriteLine($"notetime:{notetime}");
+            var calcFrameCount = decoder.CalculateFrameCount(notetime, decoder.pyworldPeriod);
+            //Console.WriteLine($"calcFrameCount:{calcFrameCount}");
+            var t = decoder.GenerateTimePositions(decoder.pyworldPeriod, calcFrameCount);
+            foreach (var time in t)
+            {
+                //Console.WriteLine($"time:{time}");
+            }
+            //Console.WriteLine($"t:{t}");
+            float[] pitchBendfloatArray = pitchbend.Select(i => (float)i).ToArray();
+            foreach (var p in pitchBendfloatArray)
+            {
+                //Console.WriteLine($"pitchBendfloatArray:{p}");
+                //Console.WriteLine($"{p}");
+            }
+            var interpPitch = decoder.InterpPitch(pitchBendfloatArray, pitchRange, t);
+
+            foreach (var p in interpPitch)
+            {
+                //Console.WriteLine($"interpedpitch:{p}");
+                //Console.WriteLine($"{p}");
+            }
+
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine(ex.Message);
+            //    Console.WriteLine("Error: pitchbend decode error");
+            //    Console.Read();
+            //    Environment.Exit(1);
+            //}
+
+        }
+
+        Console.ReadLine();
 
         var pyprocess = new PyProcessStart(pythonEnvPath, pyfilePath);
         var ustpath = CreateUst(file.Cachedir, ustForRender, file.Oto);
