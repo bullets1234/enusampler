@@ -26,7 +26,7 @@ class Program
     private static bool TunedWavOut = false;
     private static string pythonEnvPath = string.Empty;
     private static bool ignoreEndPhoneme = true;
-    private static readonly string[] ignoreEndPhonemeList = { "a R", "i R", "u R", "e R", "o R"};
+    private static readonly string[] ignoreEndPhonemeList = { "a R", "i R", "u R", "e R", "o R","n R"};
     private static readonly IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json")).Build();
 
     static async Task Main(string[] args)
