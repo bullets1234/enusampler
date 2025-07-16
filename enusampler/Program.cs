@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using NAudio;
 using NAudio.Wave;
 using Microsoft.Extensions.Configuration;
+using enusampler;
 
 
 
@@ -18,6 +19,7 @@ class Program
 {
     // 処理中タスクのキュー
     private static ConcurrentQueue<string[]> taskQueue = new ConcurrentQueue<string[]>();
+
     private static bool isProcessing = false;
     private static readonly string batName = "temp.bat";
     private static readonly string helperName = "temp_helper.bat";
@@ -26,8 +28,11 @@ class Program
     private static bool TunedWavOut = false;
     private static string pythonEnvPath = string.Empty;
     private static bool ignoreEndPhoneme = true;
-    private static readonly string[] ignoreEndPhonemeList = { "a R", "i R", "u R", "e R", "o R"};
+    private static readonly string[] ignoreEndPhonemeList = { "a R", "i R", "u R", "e R", "o R","n R"};
     private static readonly IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json")).Build();
+
+    //
+    private static bool isCached = false;
 
     static async Task Main(string[] args)
     {
@@ -84,7 +89,16 @@ class Program
             }
             //Environment.Exit(1);
         }
-        var ust = SeparateUst(ustFilePath);
+
+        //cache用のtxtファイルがあるか確認して、なければ作成する
+        if (!File.Exists(Path.Combine(file.Cachedir,"enutemp_ust.txt")))
+        {
+            File.Create(Path.Combine(file.Cachedir, "enutemp_ust.txt")).Close();
+        }
+
+
+
+        var ust = await SeparateUst(ustFilePath);
 #endif
         //%1 %temp% %2 %vel% %flag% %5 %6 %7 %8 %params%
         //helper第一引数　temp cachedir helper第2引数 vel flag helper第5引数 helper第6引数 helper第7引数 helper第8引数 params
@@ -232,7 +246,6 @@ class Program
             if(tunedwavout.Length == 0)
             {
                 Console.WriteLine("Error: tuned wav out file not found");
-                //Console.WriteLine("TunedWavOutはture,falseで設定してください。");
                 Environment.Exit(1);
             }
             Console.WriteLine(tunedwavout[0]);
@@ -243,12 +256,12 @@ class Program
 
         if (!File.Exists(pyfilePath)){
             Console.WriteLine("Error: python file not found");
-            //Console.WriteLine("TunedWavOutはture,falseで設定してください。");
             Environment.Exit(1);
         }
 
 
         var pyprocess = new PyProcessStart(pythonEnvPath, pyfilePath);
+        //var ustpath = await Task.Run(()=> { return CreateUst(file.Cachedir, ustForRender, file.Oto); });
         var ustpath = CreateUst(file.Cachedir, ustForRender, file.Oto);
         var isBoolean = Boolean.TryParse(configuration["Environment:ENUNU:Legacy"], out bool legacy);
         if(!isBoolean)
@@ -258,18 +271,56 @@ class Program
             Environment.Exit(1);
         }
         Console.WriteLine("EnunuStart");
-        await pyprocess.EnunuStart(ustpath, tempWavPath, legacy);
-        ModBatchFile(batchFilePath,file);
+        
+        if (legacy)
+        {
+            Console.WriteLine("Legacy mode is enabled.");
+        }
 
+        if (!isCached)
+        {
+            await pyprocess.EnunuStart(ustpath, tempWavPath, legacy);
+            if (File.Exists(tempWavPath))
+            {
+                File.Copy(tempWavPath, Path.Combine(file.Cachedir, "temp.wav"), true);
+            }
+        }
+
+        
+        ModBatchFile(batchFilePath,file);
         pyprocess.EnunuClose();
+
+        //File.Copy(tempdatPath, Path.Combine(file.Cachedir, "temp.wav"),true);
+
+        if (isCached)
+        {
+            try
+            {
+                File.Copy(Path.Combine(file.Cachedir, "temp.wav"), tempWavPath, true);
+            }catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+            finally
+            {
+                File.Delete(Path.Combine(file.Cachedir, "enu_temp.ust"));
+            }
+        }
+
+
         Environment.Exit(0);
     }
 
     static string CreateUst(string cacheDir, List<KeyValuePair<string, Dictionary<string, string>>> list,string Oto)
     {
+        byte[] oldEnuTemp = new byte[32];
+        if(File.Exists(Path.Combine(cacheDir, $"enu_temp.ust")))
+        {
+            oldEnuTemp = FileComparer.GetFileHash(Path.Combine(cacheDir, $"enu_temp.ust"));
+        }
         FileStream f = File.Create(Path.Combine(cacheDir, $"enu_temp.ust"));
-        //tmpfilePath.Add(Path.Combine(cacheDir, $"enu_temp.ust"));
         f.Close();
+
         using FileStream fs = new(Path.Combine(cacheDir, $"enu_temp.ust"), FileMode.Open, FileAccess.ReadWrite);
         fs.SetLength(0);//中身を削除
         fs.Close();
@@ -326,6 +377,24 @@ class Program
         sw.Write(sb.ToString());
         sw.Close();
 
+        //cacheから合成履歴のハッシュをを取得
+        var ustCasheList = File.ReadAllLines(Path.Combine(cacheDir, "enutemp_ust.txt"), Encoding.UTF8);
+        if(!FileComparer.IsFileChanged(Path.Combine(cacheDir, $"enu_temp.ust"),oldEnuTemp))
+        {
+            //キャッシュが空ならば、書き込む
+            Console.WriteLine("キャッシュが存在します。");
+            isCached = true;
+
+            return Path.Combine(cacheDir, $"enu_temp.ust");
+        }
+
+        //ustCasheList.Append(FileComparer.GetFileHash(Path.Combine(cacheDir, $"enu_temp.ust")).ToString()).ToArray();
+
+        Console.WriteLine("キャッシュが存在しません。");
+
+        //File.WriteAllLines(Path.Combine(cacheDir, "enutemp_ust.txt"),ustCasheList, Encoding.UTF8);
+        //FileComparer.IsFileChanged(Path.Combine(cacheDir, $"enu_temp.ust"), Path.Combine(cacheDir, "enutemp_ust.txt"));
+
         return Path.Combine(cacheDir, $"enu_temp.ust");
     }
 
@@ -341,13 +410,24 @@ class Program
 
             if (i < 16)
             {
+                if (i == 14 && isCached)
+                {
+                    //キャッシュが存在する場合は、temp.wavを削除しない
+                    lines[i] = "";
+                }
                 continue;
             }
 
             if (line.StartsWith("copy"))
             {
+
                 lines[i] = "copy /Y ./enu_temp.wav ./temp.wav";
-                if(line.Contains("%output%"))
+                if (isCached)
+                {
+                    //キャッシュが存在する場合は、enu_temp.wavをコピーしない
+                    lines[i] = "copy /Y ./temp.wav ./temp.wav";
+                }
+                if (line.Contains("%output%"))
                 {
                     lines[i] = $"copy /Y \"./temp.wav\" \"{renderConfig.Output}\"";
                 }
@@ -527,11 +607,11 @@ class Program
         return renderConfig;
     }
 
-    static Dictionary<string, Dictionary<string, string>> SeparateUst(string ust)
+    static async Task<Dictionary<string, Dictionary<string, string>>> SeparateUst(string ust)
     {
 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        string[] lines = File.ReadAllLines(ust, Encoding.GetEncoding("Shift_JIS"));
+        string[] lines = await File.ReadAllLinesAsync(ust, Encoding.GetEncoding("Shift_JIS"));
         var arraystr = lines;
         var split_ust = arraystr[0..(arraystr.Length - 1)];
         Dictionary<string, string> note = [];
